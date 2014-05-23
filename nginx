@@ -1,0 +1,203 @@
+#########################################################################
+# File Name: nginx
+# Descriptio: nginx启动脚本
+# Author: xinwujun
+# mail: xinwujun@gmail.com
+# Created Time: 2014年05月23日 星期五 16时10分13秒
+#########################################################################
+#!/bin/bash
+
+# 根目录
+ROOT=/data/greentea/nginx
+
+# nginx二进制文件
+NGINX=${ROOT}/sbin/nginx
+
+# pid文件位置
+PID_FILE=${ROOT}/tmp/nginx.pid 
+
+#########################################################################
+
+#
+# Functions 0--true 1--wrong
+#
+
+# 0:exists; 1:not exists
+function nginx_exists() {
+    if [ -e $PID_FILE ];
+    then
+        ps -p `cat $PID_FILE` &> /dev/null;
+        if [ $? -eq 0 ];
+        then
+            return 0;
+        fi
+    fi
+    return 1;
+}
+
+# 0--true 1--wrong
+function nginx_check() {
+    $NGINX -t &> /dev/null;
+    if [ $? -eq 0 ];
+    then
+        return 0;
+    fi
+    return 1;
+}
+
+# 0--true 1--wrong
+function nginx_start() {
+    $NGINX;
+    if [ $? -eq 0 ];
+    then
+        return 0;
+    fi
+    return 1;
+}
+
+
+# 0--true 1--wrong
+function nginx_stop() {
+    $NGINX -s stop;
+    if [ $? -eq 0 ];
+    then
+        return 0;
+    fi
+    return 1;
+}
+
+# 0--true 1--wrong
+function nginx_reload() {
+    $NGINX -s reload;
+    if [ $? -eq 0 ];
+    then
+        return 0;
+    fi
+    return 1;
+}
+
+# log
+function nginx_log() {
+    str=[`date +%Y-%m-%d\ %H:%M:%S`];
+    if [ $# -gt 0 ] ;
+    then
+        for ((i=1; i<=$#; i++));
+        do
+            tem=${!i};
+            if [ "$tem" == '\n' ];
+            then
+                str="${str} ${tem}";
+            else
+                str="${str} [${tem}]";
+            fi
+        done
+        echo -e $str;
+    fi
+}
+
+_start() { 
+    nginx_exists;
+    if [ $? -eq 0 ];
+    then 
+        nginx_log "start fail" "nginx already running"
+    else 
+        nginx_check;
+        if [ $? -eq 0 ];
+        then 
+            nginx_start;
+            if [ $? -eq 0 ];
+            then 
+                nginx_log "start ok" 
+            else
+                nginx_log "start fail";
+            fi
+        else
+            nginx_log "start fail" "nginx config file error";
+        fi
+    fi 
+} 
+
+_stop() { 
+    nginx_exists;
+    if [ $? -eq 0 ];
+    then 
+        nginx_stop;
+        if [ $? -eq 0 ];
+        then
+            nginx_log "stop ok" 
+        else
+            nginx_log "stop fail" 
+            fi
+    else 
+        nginx_log "stop fail" "nginx already stopped" 
+    fi 
+} 
+
+_reload() { 
+    nginx_exists;
+    if [ $? -eq 0 ];
+    then 
+        nginx_reload;
+        if [ $? -eq 0 ];
+        then
+            nginx_log "reload ok" 
+        else
+            nginx_log "reload fail" 
+        fi
+    else 
+        nginx_log "reload fail" "nginx not started" 
+    fi 
+} 
+
+_status() { 
+    nginx_exists;
+    if [ $? -eq 0 ];
+    then 
+        PID=`cat $PID_FILE` 
+        echo -e "nginx (pid $PID) is running" 
+    else 
+        echo -e "nginx is stopped" 
+    fi 
+} 
+
+_usage() { 
+    echo -e "usage: `basename $0` [--help] {start|stop|restart|reload|status|update}";
+} 
+
+
+if [ $# -gt 0 ]
+then 
+    case $1 in 
+        start) 
+        nginx_log "start begin";
+        _start;
+        nginx_log "start end" "\n";
+        ;; 
+        stop) 
+        nginx_log "stop begin";
+        _stop 
+        nginx_log "stop end" "\n";
+        ;; 
+        restart) 
+        nginx_log "restart begin";
+        _stop 
+        _start 
+        nginx_log "restart end" "\n";
+        ;; 
+        reload) 
+        nginx_log "reload begin";
+        _reload 
+        nginx_log "reload end" "\n";
+        ;; 
+        status) 
+        _status 
+        ;; 
+        --help) 
+        _usage 
+        ;; 
+        *) 
+        _usage;
+    esac 
+else 
+    _usage;
+fi 

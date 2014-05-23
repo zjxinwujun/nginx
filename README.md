@@ -1,1 +1,2 @@
-fadfakfkja
+nginx启动脚本
+nginx配置文件
